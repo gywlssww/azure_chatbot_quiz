@@ -26,6 +26,9 @@
   - Card.cs : HeroCard, ThumbnailCard 생성을 위한 클래스
   - UserProfile.cs : 유저 상태 정보 관리를 위한 클래스
 
+2.URL에서 직접 테스트
+- https://oschatbot20200711031349.azurewebsites.net/Privacy
+
 ## Testing the bot using Bot Framework Emulator
 
 [Bot Framework Emulator](https://github.com/microsoft/botframework-emulator) is a desktop application that allows bot developers to test and debug their bots on localhost or running remotely through a tunnel.
@@ -38,12 +41,20 @@
 - File -> Open Bot
 - Enter a Bot URL of `http://localhost:3978/api/messages`
 
-2. 조교 딩 이미지가 담긴 카드 메세지가 출력되면 정상적으로 작동이 시작된 것
+## 조교 딩 이미지가 담긴 카드 메세지가 출력되면 정상적으로 작동이 시작된 것
+
 (안내에 따라)
+
    (1) 이름 입력
+   
    (2) 학번 입력
+   
    (3) 현재까지 출석률 조회
+   
    (4) 퀴즈 시작 - 문제에 대해 답이라 생각하는 항목 클릭
+   
                  - 정답 확인 후 <위키 백과로 이동> 버튼을 이용해 관련 사이트로 이동 가능.
+                 
    (5) 퀴즈 종료 후 문항 별 채점 결과와 최종 점수 확인.
+   
    (6) 데이터 베이스 상의 변경된 출석률 확인 후 프로그램 종료.
