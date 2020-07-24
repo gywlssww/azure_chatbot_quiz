@@ -17,7 +17,7 @@ namespace Microsoft.BotBuilderSamples
 
     public class TopLevelDialog : ComponentDialog
     {
-
+        //데이터 베이스 정보
         private static string Host = "dbserver502v200722.postgres.database.azure.com";
         private static string User = "ding@dbserver502v200722";
         private static string DBname = "mypgsqldb";
@@ -34,10 +34,10 @@ namespace Microsoft.BotBuilderSamples
                    Password);
 
         
-        // Define a "done" response for the company selection prompt.
+        
         private const string DoneOption = "done";
 
-        // Define value names for values tracked inside the dialogs.
+        // 접속한 학생 정보 관리용 변수
         private const string UserInfo = "value-userInfo";
         private const string Questions = "value-questions";
         private const string Examples = "value-examples";
@@ -60,12 +60,13 @@ namespace Microsoft.BotBuilderSamples
             InitialDialogId = nameof(WaterfallDialog);
         }
 
-        
+        //1. 접속한 학생의 학번 입력 - 학번을 바탕으로 학생 정보 업데이트
         private static async Task<DialogTurnResult> UidStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
             stepContext.Values[QuizResult] = stepContext.Options as List<string> ?? new List<string>();
             var isloop = stepContext.Values[QuizResult] as List<string>;
             
+            //반복 대화 시 실행-불필요한 작업(학번 입력)의 반복을 피함
             if (isloop.Count != 0)
             {
                 stepContext.Values[UserInfo] = new UserProfile();
@@ -77,7 +78,7 @@ namespace Microsoft.BotBuilderSamples
             }
             
 
-            // Create an object in which to collect the user's information within the dialog.
+            // 처음 대화 시작 시 실행-접속한 학생 정보 초기화
             stepContext.Values[UserInfo] = new UserProfile();
             stepContext.Values[Answer] = new List<string>();
             stepContext.Values[Questions] = new List<string>();
@@ -88,22 +89,27 @@ namespace Microsoft.BotBuilderSamples
             userProfile.name= (string)stepContext.Result;//이름 저장
             var promptOptions = new PromptOptions { Prompt = MessageFactory.Text("학번 9자리를 입력하세요") };
 
-            // Ask the user to enter their name.
+            // 처음 대화 시작 시 실행 - 학생의 학번 입력 받기
             return await stepContext.PromptAsync(nameof(TextPrompt), promptOptions, cancellationToken);
         }
 
-        private async Task<DialogTurnResult> AttendenceStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken) //학번 입력 후 출석률 확인 페이지
+        //2. 접속한 학생의 학번을 통해 출석률 조회
+        private async Task<DialogTurnResult> AttendenceStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken) 
         {
             stepContext.Values[QuizResult] = stepContext.Options as List<string> ?? new List<string>();
             var isloop = stepContext.Values[QuizResult] as List<string>;
+
+            //반복 대화 시 실행-불필요한 작업(출석률 조회)의 반복을 피함
             if (isloop.Count != 0)
             {
                 return await stepContext.NextAsync(isloop, cancellationToken); ;
             }
-            // Set the user's name to what they entered in response to the name prompt.
+
+            // 입력받은 학생의 학번을 학생 정보에 저장
             var userProfile = (UserProfile)stepContext.Values[UserInfo];
             userProfile.unum = ((string)stepContext.Result);//학번 저장
 
+            //학번을 바탕으로 데이터 베이스에서 학생 정보(이름,학번,출석률) 조회
             using (var conn = new NpgsqlConnection(connString)) {
                 conn.Open();
 
@@ -138,6 +144,7 @@ namespace Microsoft.BotBuilderSamples
             return await stepContext.NextAsync(isloop, cancellationToken);
         }
 
+        //3. 데이터 베이스에서 퀴즈 문제 조회
         private async Task<DialogTurnResult> DBtaskStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
             var quizResultlist = stepContext.Values[QuizResult] as List<string>;
@@ -159,6 +166,7 @@ namespace Microsoft.BotBuilderSamples
                 userProfile.name = quizResultlist[0];
             }
 
+            //퀴즈 문제 데이터 베이스에서 문제, 보기, 정답을 한 튜플씩 조회
             using (var conn = new NpgsqlConnection(connString))
                 {
                     conn.Open();
@@ -178,11 +186,10 @@ namespace Microsoft.BotBuilderSamples
                 
 
                 }
-
+            //해당 문제의 정답을 다음 대화 흐름으로 전송하기 위해
                 stepContext.Values[Answer] = answer;
             
-            //example 형성 후 질문
-
+            //문제의 보기 생성 후 출력
             var promptOptions = new PromptOptions
             {
                 Prompt = MessageFactory.Text(question),
@@ -190,30 +197,32 @@ namespace Microsoft.BotBuilderSamples
                 Choices = ChoiceFactory.ToChoices(example.Split('/')),
             };
 
-            // Prompt the user for a choice.
             return await stepContext.PromptAsync(nameof(ChoicePrompt), promptOptions, cancellationToken);
 
 
         }
 
+        //4.퀴즈의 정답과 학생의 답을 비교하고 채점한 뒤 다음 문제 출제 작업으로 반복
         private async Task<DialogTurnResult> ChkQuizStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
-            // Set the user's company selection to what they entered in the review-selection dialog.
             var userProfile = (UserProfile)stepContext.Values[UserInfo];
             var quizResultlist = stepContext.Values[QuizResult] as List<string>;
             var answerlist = (string)stepContext.Values[Answer];
+            //학생의 답(choice.Value)과 정답(answerlist)을 비교
             var choice = (FoundChoice)stepContext.Result;
             await stepContext.Context.SendActivityAsync(choice.Value == answerlist ? "정답입니다." : "오답입니다.");
             quizResultlist.Add(choice.Value == answerlist ? "O" : "X");
 
+            //퀴즈 데이터 베이스 내 모든 문제를 푼 경우
             if (quizResultlist.Count == 6)
             {
 
-                // Thank them for participating.
                 int score = 0;
+                //전체 퀴즈 풀이 점수 계산
                 for (int i = 1; i < quizResultlist.Count; i++) {
                     if (String.Compare(quizResultlist[i], "O") == 0) score+=20;
                 }
+                //문제 당 채점 결과 출력
                 string scoreStr = $"{((UserProfile)stepContext.Values[UserInfo]).name}님의 퀴즈 결과 {score}점 입니다.\r\n " +
                     $"1번 문제: {quizResultlist[1]}\r\n2번 문제: {quizResultlist[2]}\r\n3번 문제: {quizResultlist[3]}\r\n4번 문제: {quizResultlist[4]}\r\n5번 문제: {quizResultlist[5]}";
                 if (score >= 60)
@@ -221,6 +230,7 @@ namespace Microsoft.BotBuilderSamples
                     await stepContext.Context.SendActivityAsync(
                     MessageFactory.Text(scoreStr+"\r\n축하드립니다. 오늘 수업을 이수하였습니다."),
                     cancellationToken);
+                    //60점 이상인 경우 출석으로 인정되어 학생의 출석률 정보 데이터베이스 업데이트
                     using (var conn = new NpgsqlConnection(connString))
                     {
                         conn.Open();
@@ -244,9 +254,10 @@ namespace Microsoft.BotBuilderSamples
                     userProfile.attendence = 70;
                 }
                 
-                // Exit the dialog, returning the collected user information.
+                //대화 흐름 종료
                 return await stepContext.EndDialogAsync(stepContext.Values[UserInfo], cancellationToken);
             }
+            //다음 문제 출제를 위해 대화 흐름 반복
             else {
                 return await stepContext.ReplaceDialogAsync(nameof(TopLevelDialog), quizResultlist, cancellationToken);
             }

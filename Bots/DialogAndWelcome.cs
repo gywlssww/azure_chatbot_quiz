@@ -25,12 +25,12 @@ namespace Microsoft.BotBuilderSamples
         {
             foreach (var member in membersAdded)
             {
-                // Greet anyone that was not the target (recipient) of this message.
-                // To learn more about Adaptive Cards, see https://aka.ms/msbot-adaptivecards for more details.
+                //복습 퀴즈 웰컴 메세지 - herocard 활용
                 if (member.Id != turnContext.Activity.Recipient.Id)
                 {
-                    var reply = MessageFactory.Text($" {member.Name} 조교 딩과 복습퀴즈를 시작합니다.\r\n" +" 60점 이상인 경우에만 출석으로 인정됩니다.\r\n"+
-                        " 출석할 학생의 이름을 입력하세요");
+                    var attachments = new List<Attachment>();
+                    var reply = MessageFactory.Attachment(attachments);
+                    reply.Attachments.Add(Card.GetHeroCard().ToAttachment());
                     await turnContext.SendActivityAsync(reply, cancellationToken);
                 }
             }
