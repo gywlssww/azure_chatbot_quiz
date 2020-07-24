@@ -11,6 +11,8 @@ using Npgsql;
 using System;
 using System.Data;
 using System.Linq;
+using Microsoft.Bot.Schema;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.BotBuilderSamples
 {
@@ -210,7 +212,10 @@ namespace Microsoft.BotBuilderSamples
             var answerlist = (string)stepContext.Values[Answer];
             //학생의 답(choice.Value)과 정답(answerlist)을 비교
             var choice = (FoundChoice)stepContext.Result;
-            await stepContext.Context.SendActivityAsync(choice.Value == answerlist ? "정답입니다." : "오답입니다.");
+            var attachments = new List<Attachment>();
+            var reply = MessageFactory.Attachment(attachments);
+            reply.Attachments.Add(Card.GetThumbnailCard(choice.Value == answerlist ? "정답입니다 :)" : "오답입니다 :(", answerlist).ToAttachment());
+            await stepContext.Context.SendActivityAsync(reply,cancellationToken);
             quizResultlist.Add(choice.Value == answerlist ? "O" : "X");
 
             //퀴즈 데이터 베이스 내 모든 문제를 푼 경우
