@@ -18,16 +18,13 @@
 - Clone the repository
 
     ```bash
-    git clone https://github.com/Microsoft/botbuilder-samples.git
+    git clone https://github.com/gywlssww/azure_chatbot_quiz.git
     ```
 
 - Run the bot from Visual Studio:
 
-  - Launch Visual Studio
-  - File -> Open -> Project/Solution
-  - Navigate to `samples/csharp_dotnetcore/43.complex-dialog` folder
-  - Select `ComplexDialogBot.csproj` file
-  - Press `F5` to run the project
+  - Card.cs : HeroCard, ThumbnailCard 생성을 위한 클래스
+  - UserProfile.cs : 유저 상태 정보 관리를 위한 클래스
 
 ## Testing the bot using Bot Framework Emulator
 
